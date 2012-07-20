@@ -134,9 +134,18 @@ class ReOrderer(wx.Frame):
         questions = contents.split(self.splitDelim)
         questionCount = len(questions)
         
+        # Delimit the questions on the basis of a common suffix after question number, the .
+        # After the dot, there can be a single space or tab which separates the question number with the contents
         for cnt in range(0, questionCount):
             question = questions[cnt]
-            orderingSerial+=str(question[:question.index('.')])+', '
+            if question.__contains__('. ') or question.__contains__('.\t'):
+                try:
+                    qNumber = int(question[:question.index('.')])
+                    orderingSerial+= str(qNumber) + ', '
+                except UnicodeError as err:
+                    orderingSerial+= 'X, '
+                except ValueError as valErr:
+                    None
 
         self.orderField.SetValue('')
         self.orderField.SetValue(orderingSerial[:-2])
