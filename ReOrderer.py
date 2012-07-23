@@ -14,10 +14,14 @@ class ReOrderer(wx.Frame):
         menu = wx.Menu()
         menu.Append(101, "&Open", "Open a text file containing tests")
         self.Bind(wx.EVT_MENU, self.OnFileSelect, id=101)
+        menu.Append(102, "&Close", "Exit this application")
+        self.Bind(wx.EVT_MENU, self.OnCloseWindow, id=102)
         menubar.Append(menu, "&File")
         menu = wx.Menu()
         menu.Append(201, "&Set Order", "Set the default ordering of tests")
         self.Bind(wx.EVT_MENU, self.OnQuestionOrderSelect, id=201)
+        menu.Append(202, "&Randomize", "Randomize ordering of tests")
+        self.Bind(wx.EVT_MENU, self.OnRandomize, id=202)
         menubar.Append(menu, "&Edit")
         self.SetMenuBar(menubar)
 
@@ -222,6 +226,16 @@ class ReOrderer(wx.Frame):
         dlg.ShowModal()
         dlg.CenterOnScreen()
         dlg.Destroy()
+
+    def OnCloseWindow(self, event):
+        contents = self.content.GetValue()
+        if len(contents) != 0:
+            msg = wx.MessageBox("Are you sure to exit?", 'Text ReOrderer',wx.YES_NO | wx.ICON_QUESTION)
+            if msg == wx.YES:
+                self.Destroy()
+            else:
+                return
+        self.Destroy()
 
 class App(wx.App):
     def __init__(self, redirect=True, filename=None):
