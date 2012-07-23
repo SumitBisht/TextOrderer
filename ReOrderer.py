@@ -7,8 +7,8 @@ This is the main class that provides both the UI and logic for the text randomiz
 class ReOrderer(wx.Frame):
 
     def __init__(self):
-        self.splitDelim = '\n\n'
-    	wx.Frame.__init__(self, None, -1, 'Question Randomizer', size=(600, 400))
+        self.splitDelim = '\n'
+        wx.Frame.__init__(self, None, -1, 'Question Randomizer', size=(600, 400))
         mainsizer = wx.BoxSizer(wx.VERTICAL)
         menubar = wx.MenuBar()
         menu = wx.Menu()
@@ -72,33 +72,53 @@ class ReOrderer(wx.Frame):
 
     def OnRandomize(self, event):
         paperContent = self.content.GetValue()
+        current_order = self.orderField.GetValue().split(',')
+        
         if len(paperContent) == 0:
             self.GiveError('Nothing to randomize')
             return
         splits = self.splitRawData(paperContent)
-        
-        random.shuffle(splits)
         newContent = ""
-        self.content.SetValue("")
-        for item in splits:
-            newContent += item
-            newContent += self.splitDelim
+        
+        for split in splits:
+            random.shuffle(split)
+            self.content.SetValue("")
+            for item in split:
+                #q_number= item.split('\n')[0].split('.')[0]
+                while(current_order[0].strip()=='*'):
+                    newContent += self.extra_contents.pop(0)
+                    newContent += self.splitDelim
+                    current_order = current_order[1:]
+                
+                newContent += item
+                newContent += self.splitDelim
+                current_order = current_order[1:]
+            
         self.content.SetValue(newContent.rstrip(self.splitDelim))
         self.OnQuestionOrderSelect(event)
-
+        
     def splitRawData(self, inputData):
-        splits = inputData.split(self.splitDelim)
-        result = []
-        for i in range(0, len(splits)):
-            validQuestion = True
-            content = splits[i]
-            options = ['(A)', '(B)', '(C)', '(D)']
-            for var in options:
-                if not content.__contains__(var):
-                   validQuestion = False
-            if validQuestion == True:
-                result.append(content)
-        return result
+        questions = self.SplitContentIntoQuestions(inputData, True)
+        current_order = self.orderField.GetValue().split(',')
+        questionLists = []
+        prevNumber = -1
+        list = []
+        for questn in current_order:
+            try:
+                number = int(questn)
+                if number < prevNumber:
+                    questionLists.append(list)
+                    list = []
+                    
+                list.append(questions.pop(0)) 
+                prevNumber = number
+            except Exception as err:
+                if len(list) > 0:
+                    questionLists.append(list)
+                    list = []
+                
+        questionLists.append(list)
+        return questionLists
 
     def OnFileSelect(self, event):
         fileChoices = "Text file |*.txt|All files|*.*"
@@ -130,26 +150,49 @@ class ReOrderer(wx.Frame):
         if len(contents) == 0:
             self.GiveError('Unable to load questions for counting')
             return
-        
-        questions = contents.split(self.splitDelim)
-        questionCount = len(questions)
-        
+        results = self.SplitContentIntoQuestions(contents)
+        self.orderField.SetValue('')
+        self.orderField.SetValue(results[:-2])
+
+    def SplitContentIntoQuestions(self, contents, provideQuestions = False):
+        lines = contents.split('\n')
+        self.extra_contents = []
+        orderingSerial = ''
+        questions = []
+        question_content = ''
+        qStarted = False
         # Delimit the questions on the basis of a common suffix after question number, the .
         # After the dot, there can be a single space or tab which separates the question number with the contents
-        for cnt in range(0, questionCount):
-            question = questions[cnt]
-            if question.__contains__('. ') or question.__contains__('.\t'):
+        for cnt in range(0, len(lines)):
+            line = lines[cnt]
+            if line.__contains__('. ') or line.__contains__('.\t'):
+                qStarted = True
                 try:
-                    qNumber = int(question[:question.index('.')])
+                    qNumber = int(line.split('.')[0])
                     orderingSerial+= str(qNumber) + ', '
+                    question_content = line#.split('.')[1]
                 except UnicodeError as err:
                     orderingSerial+= 'X, '
                 except ValueError as valErr:
                     None
-
-        self.orderField.SetValue('')
-        self.orderField.SetValue(orderingSerial[:-2])
-
+            elif qStarted == False and line.strip() != '':
+                orderingSerial+= '*, '
+                self.extra_contents.append('\n'+line)
+            elif line.startswith('(D)'):
+                qStarted = False
+                question_content+='\n'+line
+                questions.append(question_content)
+            else:
+                if qStarted:
+                    question_content += '\n'+line
+                else:
+                    None#self.extra_contents.append('\n'+line)
+        
+        if provideQuestions:
+            return questions
+        else:
+            return orderingSerial
+                
     #set the order of tests on the basis of specified test order
     def OnUseOrder(self, event):
         order = self.orderField.GetValue()
