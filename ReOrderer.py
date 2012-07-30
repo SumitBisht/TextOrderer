@@ -1,6 +1,8 @@
 import wx
 import os
 import random
+from docx import *
+import sys
 '''
 This is the main class that provides both the UI and logic for the text randomization.
 '''
@@ -8,6 +10,7 @@ class ReOrderer(wx.Frame):
 
     def __init__(self):
         self.splitDelim = '\n'
+        self.questions = {}
         wx.Frame.__init__(self, None, -1, 'Question Randomizer', size=(600, 400))
         mainsizer = wx.BoxSizer(wx.VERTICAL)
         menubar = wx.MenuBar()
@@ -66,7 +69,7 @@ class ReOrderer(wx.Frame):
         self.SetMinSize(self.GetSize())
     
     def OnSaveToFile(self, event):
-        fileChoices = "Text file |*.txt|All files|*.*"
+        fileChoices = "All files|*.*|Text file |*.txt"
         savedFile = wx.FileDialog (None, "Save file as...", os.getcwd(), "", fileChoices, wx.SAVE)
         if savedFile.ShowModal() == wx.ID_OK:
             opFile = open(savedFile.GetPath(), 'w')
@@ -75,31 +78,25 @@ class ReOrderer(wx.Frame):
             opFile.close()
 
     def OnRandomize(self, event):
-        paperContent = self.content.GetValue()
+        self.UpdateQuestionDict()
         current_order = self.orderField.GetValue().split(',')
         
-        if len(paperContent) == 0:
+        if len(current_order) == 0:
             self.GiveError('Nothing to randomize')
             return
-        splits = self.splitRawData(paperContent)
         newContent = ""
+        random.shuffle(current_order)
         
-        for split in splits:
-            random.shuffle(split)
-            self.content.SetValue("")
-            for item in split:
-                #q_number= item.split('\n')[0].split('.')[0]
-                while(current_order[0].strip()=='*'):
-                    newContent += self.extra_contents.pop(0)
-                    newContent += self.splitDelim
-                    current_order = current_order[1:]
-                
-                newContent += item
-                newContent += self.splitDelim
-                current_order = current_order[1:]
+        self.content.Clear()
+        
+        for num in current_order:
+            newContent += num+' ,'
+            question = self.questions.pop(num)
+            self.content.WriteText(question + '\n')
             
-        self.content.SetValue(newContent.rstrip(self.splitDelim))
-        self.OnQuestionOrderSelect(event)
+        self.orderField.SetValue('')
+        self.orderField.SetValue(newContent[:-2])
+        
         
     def splitRawData(self, inputData):
         questions = self.SplitContentIntoQuestions(inputData, True)
@@ -125,26 +122,52 @@ class ReOrderer(wx.Frame):
         return questionLists
 
     def OnFileSelect(self, event):
-        fileChoices = "Text file |*.txt|All files|*.*"
+        fileChoices = "MS-Word 2007 |*.docx|Text file |*.txt|All files|*.*"
         extractedFile = wx.FileDialog (None, "Choose a file containing the test Questions", os.getcwd(), "", fileChoices, wx.OPEN)
         
         if extractedFile.ShowModal() == wx.ID_OK:
             selectedFileName = extractedFile.GetPath()
             self.selectedFileText.SetValue(selectedFileName)
-            self.populateFields(selectedFileName)
-            self.OnQuestionOrderSelect(event)
-
+            questions = self.readDocx(selectedFileName)
+            self.setVarFields(questions)
+            
             self.save.Enable()
             self.run.Enable()
             self.orderuser.Enable()
         extractedFile.Destroy()
 
-    def populateFields(self, filename):
-        self.content.SetValue('')
-        testFileName = open(filename)
-        contents = testFileName.readlines()
-        for line in contents:
-            self.content.WriteText(str(line))
+    def readDocx(self, filename):
+        questionList = []
+        qText = ''
+        document = opendocx(filename)
+        paragraphs = getdocumenttext(document)
+        
+        for question in paragraphs:
+            qText +=question
+            if question.__contains__('(D)'):
+                questionList.append(qText)
+                qText = ''
+        return questionList
+        
+    def setVarFields(self, qList):
+        order = ''
+        self.content.Clear()
+        for quest in qList:
+            questn = quest.strip()
+            question = questn.split('(A)')[0]
+            self.content.WriteText(question+'\n')
+            answer = questn[len(question):].split('\t')
+            for line in answer:
+                self.content.WriteText(line)
+                if len(line.strip()) > 3:
+                    self.content.WriteText('\n')
+            
+            self.content.WriteText('\n')
+            qNum = questn.split('.')[0]
+            order+= qNum+' ,'
+            self.questions[qNum] = quest
+        self.orderField.SetValue('')
+        self.orderField.SetValue(order[:-2])
 
     #Selects the question number and populates it in a csv format on the textbox to assist
     #in the manual entry.
@@ -197,27 +220,32 @@ class ReOrderer(wx.Frame):
         else:
             return orderingSerial
                 
-    #set the order of tests on the basis of specified test order
+    # Uses the order field to populate the rest of the test
     def OnUseOrder(self, event):
+        # Use the newly specified ordering
+        order = self.orderField.GetValue()
+        # Set the question list according the the field values
+        self.content
+        questionList = []
+        # Update UI
+        self.setVarFields(questionList)
+        
+    def UpdateQuestionDict(self):
         order = self.orderField.GetValue()
         if order == '':
             return
-        questions = self.splitRawData(self.content.GetValue())
-        order = order.split(',')
-        details = dict()
+        reorder = order.split(',')
 
-        #Sort the questions according to the specified numbers, using a dictionary
-        for ques in questions:
-            details[ques[:ques.index('.')].strip()] = ques
-
-        self.content.SetValue('')
-        self.orderField.SetValue('')
-        newcontent = ''
-        for question in order:
-            newcontent += str(details.pop(question.strip()) + self.splitDelim)
-        newcontent = newcontent[:-len(self.splitDelim)]
-        self.content.SetValue(newcontent)
-        self.OnQuestionOrderSelect(event)
+        questions = self.content.GetValue().split('\n')
+        question = ''
+        questionList = []
+        for line in questions:
+            question+=line
+            if len(line)==0 :
+                questionList.append(question)
+                question = ''
+        for num in reorder:
+            self.questions[num] = questionList.pop(0)
 
     # Provides error dialogs in a resuable manner.
     # Is based on the presence of loaded file contents
