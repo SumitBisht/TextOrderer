@@ -22,7 +22,7 @@ class ReOrderer(wx.Frame):
         menubar.Append(menu, "&File")
         menu = wx.Menu()
         menu.Append(201, "&Set Order", "Set the default ordering of tests")
-        self.Bind(wx.EVT_MENU, self.OnQuestionOrderSelect, id=201)
+        self.Bind(wx.EVT_MENU, self.OnUseOrder, id=201)
         menu.Append(202, "&Randomize", "Randomize ordering of tests")
         self.Bind(wx.EVT_MENU, self.OnRandomize, id=202)
         menubar.Append(menu, "&Edit")
@@ -91,17 +91,8 @@ class ReOrderer(wx.Frame):
         
         for num in current_order:
             question = self.questions.pop(num)
-            qn = question.split('(A)')[0]
-            newContent += qn.split('.')[0].strip()+' ,'
-            
-            ans = question[len(qn):]
-            self.content.WriteText(qn + '\n')
-            ans = ans.split('(')
-            for a in ans:
-                if len(a)<1:
-                    continue
-                self.content.WriteText('('+ a + '\n')
-            self.content.WriteText('\n')
+            newContent += question.split('.')[0].strip()+' ,'
+            self.WriteQuestion(question)
         self.orderField.SetValue('')
         self.orderField.SetValue(newContent[:-2])
         
@@ -176,7 +167,7 @@ class ReOrderer(wx.Frame):
             self.questions[qNum] = quest
         self.orderField.SetValue('')
         self.orderField.SetValue(order[:-2])
-
+                
     #Selects the question number and populates it in a csv format on the textbox to assist
     #in the manual entry.
     def OnQuestionOrderSelect(self, event):
@@ -230,30 +221,43 @@ class ReOrderer(wx.Frame):
                 
     # Uses the order field to populate the rest of the test
     def OnUseOrder(self, event):
-        # Use the newly specified ordering
-        order = self.orderField.GetValue()
-        # Set the question list according the the field values
-        self.content
-        questionList = []
-        # Update UI
-        self.setVarFields(questionList)
+        self.UpdateQuestionDict()
+        self.content.Clear()
+        current_order = self.orderField.GetValue().split(',')
+        if len(current_order) == 0:
+            self.GiveError('Nothing to randomize')
+            return
+        for qnum in current_order:
+            qnum = qnum.strip()
+            self.WriteQuestion(self.questions[qnum])
+        #self.setVarFields(questionList)
         
     def UpdateQuestionDict(self):
-        order = self.orderField.GetValue()
-        if order == '':
-            return
-        reorder = order.split(',')
+        reorder = []
 
         questions = self.content.GetValue().split('\n')
         question = ''
         questionList = []
         for line in questions:
             question+=line
-            if len(line)==0 :
+            if len(line)==0 and question != '':
+                reorder.append(question.split('.')[0].strip())
                 questionList.append(question)
                 question = ''
         for num in reorder:
             self.questions[num] = questionList.pop(0)
+    
+    #A common method to write the question passed on to it in an orderly manner.  
+    def WriteQuestion(self, question):
+        qn = question.split('(A)')[0]
+        ans = question[len(qn):]
+        self.content.WriteText(qn + '\n')
+        ans = ans.split('(')
+        for a in ans:
+            if len(a)<1:
+                continue
+            self.content.WriteText('('+ a + '\n')
+        self.content.WriteText('\n')
 
     # Provides error dialogs in a resuable manner.
     # Is based on the presence of loaded file contents
