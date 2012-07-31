@@ -69,56 +69,16 @@ class ReOrderer(wx.Frame):
         self.SetMinSize(self.GetSize())
     
     def OnSaveToFile(self, event):
-        fileChoices = "All files|*.*|Text file |*.txt"
+        fileChoices = "MS-Word 2007 |*.docx |Text file |*.txt |All files |*.* "
         savedFile = wx.FileDialog (None, "Save file as...", os.getcwd(), "", fileChoices, wx.SAVE)
         if savedFile.ShowModal() == wx.ID_OK:
-            opFile = open(savedFile.GetPath(), 'w')
-            opFile.write(self.content.GetValue())
-            opFile.flush()
-            opFile.close()
-
-    def OnRandomize(self, event):
-        self.UpdateQuestionDict()
-        current_order = self.orderField.GetValue().split(',')
-        
-        if len(current_order) == 0:
-            self.GiveError('Nothing to randomize')
-            return
-        newContent = ""
-        random.shuffle(current_order)
-        
-        self.content.Clear()
-        
-        for num in current_order:
-            question = self.questions.pop(num)
-            newContent += question.split('.')[0].strip()+' ,'
-            self.WriteQuestion(question)
-        self.orderField.SetValue('')
-        self.orderField.SetValue(newContent[:-2])
-        
-        
-    def splitRawData(self, inputData):
-        questions = self.SplitContentIntoQuestions(inputData, True)
-        current_order = self.orderField.GetValue().split(',')
-        questionLists = []
-        prevNumber = -1
-        list = []
-        for questn in current_order:
-            try:
-                number = int(questn.trim())
-                if number < prevNumber:
-                    questionLists.append(list)
-                    list = []
-                    
-                list.append(questions.pop(0)) 
-                prevNumber = number
-            except Exception as err:
-                if len(list) > 0:
-                    questionLists.append(list)
-                    list = []
-                
-        questionLists.append(list)
-        return questionLists
+            if savedFile.__contains__('docx'):
+                None
+            else:
+                opFile = open(savedFile.GetPath(), 'w')
+                opFile.write(self.content.GetValue())
+                opFile.flush()
+                opFile.close()
 
     def OnFileSelect(self, event):
         fileChoices = "MS-Word 2007 |*.docx|Text file |*.txt|All files|*.*"
@@ -167,58 +127,27 @@ class ReOrderer(wx.Frame):
             self.questions[qNum] = quest
         self.orderField.SetValue('')
         self.orderField.SetValue(order[:-2])
-                
-    #Selects the question number and populates it in a csv format on the textbox to assist
-    #in the manual entry.
-    def OnQuestionOrderSelect(self, event):
-        orderingSerial = ''
-        contents = self.content.GetValue()
-        if len(contents) == 0:
-            self.GiveError('Unable to load questions for counting')
-            return
-        results = self.SplitContentIntoQuestions(contents)
-        self.orderField.SetValue('')
-        self.orderField.SetValue(results[:-2])
 
-    def SplitContentIntoQuestions(self, contents, provideQuestions = False):
-        lines = contents.split('\n')
-        self.extra_contents = []
-        orderingSerial = ''
-        questions = []
-        question_content = ''
-        qStarted = False
-        # Delimit the questions on the basis of a common suffix after question number, the .
-        # After the dot, there can be a single space or tab which separates the question number with the contents
-        for cnt in range(0, len(lines)):
-            line = lines[cnt]
-            if line.__contains__('. ') or line.__contains__('.\t'):
-                qStarted = True
-                try:
-                    qNumber = int(line.split('.')[0])
-                    orderingSerial+= str(qNumber) + ', '
-                    question_content = line#.split('.')[1]
-                except UnicodeError as err:
-                    orderingSerial+= 'X, '
-                except ValueError as valErr:
-                    None
-            elif qStarted == False and line.strip() != '':
-                orderingSerial+= '*, '
-                self.extra_contents.append('\n'+line)
-            elif line.startswith('(D)'):
-                qStarted = False
-                question_content+='\n'+line
-                questions.append(question_content)
-            else:
-                if qStarted:
-                    question_content += '\n'+line
-                else:
-                    None#self.extra_contents.append('\n'+line)
+    # Provides for randomization of the questions, is not dependent on any prior user input
+    def OnRandomize(self, event):
+        self.UpdateQuestionDict()
+        current_order = self.orderField.GetValue().split(',')
         
-        if provideQuestions:
-            return questions
-        else:
-            return orderingSerial
-                
+        if len(current_order) == 0:
+            self.GiveError('Nothing to randomize')
+            return
+        newContent = ""
+        random.shuffle(current_order)
+        
+        self.content.Clear()
+        
+        for num in current_order:
+            question = self.questions.pop(num)
+            newContent += question.split('.')[0].strip()+' ,'
+            self.WriteQuestion(question)
+        self.orderField.SetValue('')
+        self.orderField.SetValue(newContent[:-2])
+
     # Uses the order field to populate the rest of the test
     def OnUseOrder(self, event):
         self.UpdateQuestionDict()
