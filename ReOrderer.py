@@ -90,10 +90,18 @@ class ReOrderer(wx.Frame):
         self.content.Clear()
         
         for num in current_order:
-            newContent += num+' ,'
             question = self.questions.pop(num)
-            self.content.WriteText(question + '\n')
+            qn = question.split('(A)')[0]
+            newContent += qn.split('.')[0].strip()+' ,'
             
+            ans = question[len(qn):]
+            self.content.WriteText(qn + '\n')
+            ans = ans.split('(')
+            for a in ans:
+                if len(a)<1:
+                    continue
+                self.content.WriteText('('+ a + '\n')
+            self.content.WriteText('\n')
         self.orderField.SetValue('')
         self.orderField.SetValue(newContent[:-2])
         
@@ -106,7 +114,7 @@ class ReOrderer(wx.Frame):
         list = []
         for questn in current_order:
             try:
-                number = int(questn)
+                number = int(questn.trim())
                 if number < prevNumber:
                     questionLists.append(list)
                     list = []
@@ -155,15 +163,15 @@ class ReOrderer(wx.Frame):
         for quest in qList:
             questn = quest.strip()
             question = questn.split('(A)')[0]
-            self.content.WriteText(question+'\n')
+            self.content.WriteText('\n' + question)
             answer = questn[len(question):].split('\t')
             for line in answer:
-                self.content.WriteText(line)
-                if len(line.strip()) > 3:
+                if line.__contains__('(') and line.__contains__(')'):
                     self.content.WriteText('\n')
+                self.content.WriteText(line)
             
             self.content.WriteText('\n')
-            qNum = questn.split('.')[0]
+            qNum = question.split('.')[0]
             order+= qNum+' ,'
             self.questions[qNum] = quest
         self.orderField.SetValue('')
