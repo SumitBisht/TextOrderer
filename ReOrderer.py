@@ -142,7 +142,7 @@ class ReOrderer(wx.Frame):
         self.content.Clear()
         
         for num in current_order:
-            question = self.questions.pop(num)
+            question = self.questions.pop(num.strip())
             newContent += question.split('.')[0].strip()+' ,'
             self.WriteQuestion(question)
         self.orderField.SetValue('')
