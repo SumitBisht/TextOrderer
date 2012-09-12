@@ -72,8 +72,8 @@ class ReOrderer(wx.Frame):
         fileChoices = "MS-Word 2007 |*.docx |Text file |*.txt |All files |*.* "
         savedFile = wx.FileDialog (None, "Save file as...", os.getcwd(), "", fileChoices, wx.SAVE)
         if savedFile.ShowModal() == wx.ID_OK:
-            if savedFile.__contains__('docx'):
-                None
+            if savedFile.GetPath().__contains__('docx'):
+                self.writeWordDocument(savedFile.GetPath())
             else:
                 opFile = open(savedFile.GetPath(), 'w')
                 opFile.write(self.content.GetValue())
@@ -94,6 +94,17 @@ class ReOrderer(wx.Frame):
             self.run.Enable()
             self.orderuser.Enable()
         extractedFile.Destroy()
+        
+        
+    def writeWordDocument(self, path):
+        self.GiveError( 'Temporary error', 'Saving into word document is currently disabled, please use a text file(.txt extension) instead.')
+
+#        document = newdocument()
+#        docbody = document.xpath('/w:document/w:body', namespaces=nsprefixes)[0]
+#        current_doc_value = self.content.GetValue()
+#        docbody.append(paragraph(current_doc_value))
+#        
+#        savedocx(document, coreprops, appprops, contenttypes, websettings, wordrelationships, output)
 
     def readDocx(self, filename):
         questionList = []
@@ -134,7 +145,7 @@ class ReOrderer(wx.Frame):
         current_order = self.orderField.GetValue().split(',')
         
         if len(current_order) == 0:
-            self.GiveError('Nothing to randomize')
+            self.GiveError('Nothing to randomize', 'Please load text file containing Questions')
             return
         newContent = ""
         random.shuffle(current_order)
@@ -154,7 +165,7 @@ class ReOrderer(wx.Frame):
         self.content.Clear()
         current_order = self.orderField.GetValue().split(',')
         if len(current_order) == 0:
-            self.GiveError('Nothing to randomize')
+            self.GiveError('Nothing to randomize', 'Please load text file containing Questions')
             return
         for qnum in current_order:
             qnum = qnum.strip()
@@ -190,8 +201,8 @@ class ReOrderer(wx.Frame):
 
     # Provides error dialogs in a resuable manner.
     # Is based on the presence of loaded file contents
-    def GiveError(self, actionPerformed):
-        dlg=wx.MessageDialog(self, 'Please load text file containing Questions', actionPerformed, wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP)
+    def GiveError(self, actionPerformed, message):
+        dlg=wx.MessageDialog(self, message, actionPerformed, wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP)
         dlg.ShowModal()
         dlg.CenterOnScreen()
         dlg.Destroy()
