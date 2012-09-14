@@ -5,7 +5,8 @@ windows = [{'script': "ReOrderer.py"}]
 options = {
     'py2exe': {
         'dll_excludes': ['MSVCP90.dll'],
-        'excludes': ['.git']
+        'excludes': ['.git'],
+        'includes': ['lxml.etree', 'lxml._elementpath', 'gzip'],
      }
 }
 
