@@ -11,6 +11,7 @@ class ReOrderer(wx.Frame):
     def __init__(self):
         self.splitDelim = '\n'
         self.questions = {}
+        self.order = ''
         wx.Frame.__init__(self, None, -1, 'Question Randomizer', size=(600, 400))
         mainsizer = wx.BoxSizer(wx.VERTICAL)
         menubar = wx.MenuBar()
@@ -56,6 +57,8 @@ class ReOrderer(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnRandomize, self.run)
         self.orderuser = wx.Button(self, -1, "Use Order")
         self.Bind(wx.EVT_BUTTON, self.OnUseOrder, self.orderuser)
+        self.remember = wx.Button(self, -1, "Remember Order")
+        self.Bind(wx.EVT_BUTTON, self.OnRememberOrder, self.remember)
         self.save.Disable()
         self.run.Disable()
         self.orderuser.Disable()
@@ -64,6 +67,7 @@ class ReOrderer(wx.Frame):
         buttonsizer.Add(self.save, 3, wx.EXPAND)
         buttonsizer.Add(self.run, 2, wx.EXPAND)
         buttonsizer.Add(self.orderuser, 3, wx.EXPAND)
+        buttonsizer.Add(self.remember, 3, wx.EXPAND)
         mainsizer.Add(buttonsizer)
         self.SetSizerAndFit(mainsizer)
         self.SetMinSize(self.GetSize())
@@ -171,6 +175,18 @@ class ReOrderer(wx.Frame):
             qnum = qnum.strip()
             self.WriteQuestion(self.questions[qnum])
         #self.setVarFields(questionList)
+        
+    def OnRememberOrder(self, event):
+        if len(self.order) > 0:
+            self.remember.SetLabel('Remember Order')
+            self.orderField.SetValue(self.order)
+            self.order = ''
+        else:
+            if len(self.orderField.GetValue()) < 1:
+                self.GiveError( 'Error saving values', 'Please provide some order first!')
+                return
+            self.order = self.orderField.GetValue()
+            self.remember.SetLabel('Recall Order')
         
     def UpdateQuestionDict(self):
         reorder = []
